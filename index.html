@@ -489,8 +489,9 @@
 
         fetch('questions.json').then(res => res.json()).then(data => { allQuestions = data; renderQuickLogin(); }).catch(e => console.error(e));
 
-        // --- 資料儲存 Key 產生器 (隔離使用者) ---
-        function getUserKey(key) { return userName + '_' + key; }
+        // --- 資料儲存 Key 產生器 (隔離使用者，並避免與地理 App 衝突) ---
+        // 使用 "english3_L5_" 作為前綴
+        function getUserKey(key) { return 'english3_L5_' + userName + '_' + key; }
 
         function selectAvatar(filename, element) {
             currentAvatar = filename;
@@ -498,7 +499,8 @@
             element.classList.add('selected');
         }
 
-        function getSavedUsers() { return JSON.parse(localStorage.getItem('savedUsers')) || []; }
+        // 修改：使用 english3_L5_savedUsers
+        function getSavedUsers() { return JSON.parse(localStorage.getItem('english3_L5_savedUsers')) || []; }
         function renderQuickLogin() {
             let users = getSavedUsers();
             let container = document.getElementById('quick-login-area');
@@ -526,26 +528,30 @@
             if (!confirm(`確定要刪除「${name}」的所有資料嗎？\n(包含登入紀錄、作答歷史、錯題本)`)) return;
             if (!confirm(`⚠️ 警告：刪除後資料完全消失且無法復原！\n您真的確定要刪除「${name}」嗎？`)) return;
 
-            localStorage.removeItem(name + '_mistakeBank');
-            localStorage.removeItem(name + '_quizHistory');
-            localStorage.removeItem(name + '_quizProgress');
+            // 修改：刪除 key 時加上前綴
+            localStorage.removeItem('english3_L5_' + name + '_mistakeBank');
+            localStorage.removeItem('english3_L5_' + name + '_quizHistory');
+            localStorage.removeItem('english3_L5_' + name + '_quizProgress');
 
             let users = getSavedUsers();
             users = users.filter(u => (typeof u === 'string' ? u : u.name) !== name);
-            localStorage.setItem('savedUsers', JSON.stringify(users));
+            // 修改：存回 english3_L5_savedUsers
+            localStorage.setItem('english3_L5_savedUsers', JSON.stringify(users));
             renderQuickLogin();
         }
         function loginAndStart() {
             const inputName = document.getElementById('username').value.trim();
             if (!inputName) { alert("請先輸入名字！"); return; }
             userName = inputName;
-            localStorage.setItem('quizUserName', userName);
-            localStorage.setItem('quizUserAvatar', currentAvatar);
+            // 修改：使用 english3_L5_quizUserName 和 english3_L5_quizUserAvatar
+            localStorage.setItem('english3_L5_quizUserName', userName);
+            localStorage.setItem('english3_L5_quizUserAvatar', currentAvatar);
 
             let users = getSavedUsers();
             users = users.filter(u => (typeof u === 'string' ? u : u.name) !== userName);
             users.push({ name: userName, avatar: currentAvatar });
-            localStorage.setItem('savedUsers', JSON.stringify(users));
+            // 修改：存回 english3_L5_savedUsers
+            localStorage.setItem('english3_L5_savedUsers', JSON.stringify(users));
 
             if (!isPlaying) playMusic();
             goToLevelScreen();
@@ -841,7 +847,7 @@
         
         function clearAllHistory() {
             if(confirm("確定要刪除 *全部* 歷史紀錄嗎？")) {
-                localStorage.removeItem('quizHistory');
+                localStorage.removeItem('english3_L5_quizHistory'); // 修改：使用 english3_L5_quizHistory
                 showHistory();
             }
         }
