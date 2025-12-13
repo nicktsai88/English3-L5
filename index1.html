@@ -68,7 +68,6 @@
         .btn-red { background-color: var(--accent-color); box-shadow: 0 5px 0 #C0392B; }
         .btn-gray { background-color: #95a5a6; box-shadow: 0 5px 0 #7f8c8d; }
         .btn-blue { background-color: #3498db; box-shadow: 0 5px 0 #2980b9; }
-        .btn-pink { background-color: #E91E63; box-shadow: 0 5px 0 #C2185B; }
         
         /* 小按鈕與音樂按鈕樣式 */
         .btn-sm { padding: 8px 16px; font-size: 1em; margin: 0 2px; box-shadow: 0 3px 0 rgba(0,0,0,0.2); }
@@ -267,9 +266,8 @@
             background-color: #E3F2FD; 
             border-left: 8px solid var(--accent-color);
             padding: 20px; margin-bottom: 20px; border-radius: 15px;
-            position: relative; /* 為了讓收藏按鈕定位 */
         }
-        .question-text { font-size: 1.8em; font-weight: 600; line-height: 1.6; padding-right: 50px; /* 避免文字被愛心擋住 */ }
+        .question-text { font-size: 1.8em; font-weight: 600; line-height: 1.6; }
         
         .question-img { 
             max-width: 100%; 
@@ -282,24 +280,6 @@
             box-shadow: 0 4px 8px rgba(0,0,0,0.1); 
             border-radius: 15px; 
         }
-
-        /* --- 收藏按鈕樣式 --- */
-        .fav-btn {
-            position: absolute;
-            top: 10px;
-            right: 15px;
-            background: none;
-            border: none;
-            font-size: 2.5em;
-            cursor: pointer;
-            transition: 0.3s;
-            padding: 0;
-            line-height: 1;
-            color: #FF5E5E;
-            z-index: 10;
-        }
-        .fav-btn:hover { transform: scale(1.2); }
-        .fav-btn:active { transform: scale(0.9); }
 
         .option-btn { 
             width: 100%; padding: 15px; margin: 10px 0; text-align: left; 
@@ -384,7 +364,6 @@
             
             <div style="margin-top: 20px; background: rgba(255,255,255,0.9); padding:10px; border-radius:15px; display: flex; flex-wrap: wrap; justify-content: center; gap: 10px;">
                 <button id="btn-mistake" class="btn btn-red" onclick="startQuiz('mistake')" style="display:none;">📕 挑戰錯題本 (<span id="mistake-count">0</span>)</button>
-                <button id="btn-favorites" class="btn btn-pink" onclick="startQuiz('favorites')" style="display:none;">❤️ 我的收藏 (<span id="fav-count">0</span>)</button>
                 <button class="btn btn-blue" onclick="showCollection()">🎴 我的圖鑑</button>
                 <button class="btn btn-green" onclick="showHistory()">📜 查看紀錄</button>
                 
@@ -418,7 +397,6 @@
 
             <div id="question-container" class="fade-in">
                 <div class="question-box">
-                    <button id="fav-btn" class="fav-btn" onclick="toggleFavorite()" title="加入收藏">♡</button>
                     <div id="question-text" class="question-text">載入中...</div>
                     <img id="question-image" class="question-img" style="display: none;" />
                 </div>
@@ -556,7 +534,6 @@
             localStorage.removeItem('english3_L5_' + name + '_mistakeBank');
             localStorage.removeItem('english3_L5_' + name + '_quizHistory');
             localStorage.removeItem('english3_L5_' + name + '_quizProgress');
-            localStorage.removeItem('english3_L5_' + name + '_favorites'); // 刪除收藏紀錄
 
             let users = getSavedUsers();
             users = users.filter(u => (typeof u === 'string' ? u : u.name) !== name);
@@ -598,7 +575,7 @@
             document.getElementById('user-avatar-display').src = "images/" + currentAvatar;
             document.querySelectorAll('.quiz-container > div').forEach(el => el.style.display = 'none');
             document.getElementById('level-screen').style.display = 'block';
-            renderLevelMap(); updateMistakeButton(); updateFavoritesButton();
+            renderLevelMap(); updateMistakeButton();
         }
 
         function renderLevelMap() {
@@ -649,17 +626,11 @@
         function exitQuiz() { if(confirm("確定要放棄目前的進度回到探險地圖嗎？")) goToLevelScreen(); }
 
         function startQuiz(mode, levelNum) {
-            isMistakeMode = (mode === 'mistake' || mode === 'favorites'); // 收藏模式也不紀錄進度
-            userAnswers = {}; score = 0; currentQuestionIndex = 0;
-            
-            if (mode === 'mistake') {
+            isMistakeMode = (mode === 'mistake'); userAnswers = {}; score = 0; currentQuestionIndex = 0;
+            if (isMistakeMode) {
                 let mistakeIds = JSON.parse(localStorage.getItem(getUserKey('mistakeBank'))) || [];
                 currentQuizQuestions = allQuestions.filter(q => mistakeIds.includes(q.id));
                 document.getElementById('level-title').innerText = "📕 錯題挑戰";
-            } else if (mode === 'favorites') {
-                let favIds = getFavorites();
-                currentQuizQuestions = allQuestions.filter(q => favIds.includes(q.id));
-                document.getElementById('level-title').innerText = "❤️ 我的收藏";
             } else {
                 currentLevel = levelNum;
                 let startIndex = 0; for (let i = 0; i < levelNum - 1; i++) { startIndex += LEVEL_CONFIG[i]; }
@@ -685,10 +656,6 @@
             document.getElementById('question-text').innerText = currentQuestion.question;
             document.getElementById('explanation').style.display = 'none'; 
             document.getElementById('next-btn').style.display = 'none';
-            
-            // 更新收藏按鈕狀態
-            updateFavoriteIcon();
-            
             const imgElement = document.getElementById('question-image');
             if (currentQuestion.image) { imgElement.src = currentQuestion.image; imgElement.style.display = 'block'; } else { imgElement.style.display = 'none'; }
             const optionsList = document.getElementById('options-list'); optionsList.innerHTML = '';
@@ -700,51 +667,6 @@
             });
         }
 
-        // --- 收藏功能相關 ---
-        function getFavorites() { return JSON.parse(localStorage.getItem(getUserKey('favorites'))) || []; }
-        
-        function toggleFavorite() {
-            const currentQ = currentQuizQuestions[currentQuestionIndex];
-            if(!currentQ) return;
-            
-            let favs = getFavorites();
-            const index = favs.indexOf(currentQ.id);
-            
-            if (index === -1) {
-                favs.push(currentQ.id);
-                // 簡單動畫效果
-                confetti({ particleCount: 30, spread: 30, origin: { y: 0.3, x: 0.8 }, colors: ['#FF5E5E', '#FFC0CB'] });
-            } else {
-                favs.splice(index, 1);
-            }
-            localStorage.setItem(getUserKey('favorites'), JSON.stringify(favs));
-            updateFavoriteIcon();
-        }
-
-        function updateFavoriteIcon() {
-            const currentQ = currentQuizQuestions[currentQuestionIndex];
-            const btn = document.getElementById('fav-btn');
-            if(!currentQ || !btn) return;
-            
-            const favs = getFavorites();
-            if(favs.includes(currentQ.id)) {
-                btn.innerHTML = '❤️'; // 實心愛心
-            } else {
-                btn.innerHTML = '♡'; // 空心愛心
-            }
-        }
-        
-        function updateFavoritesButton() {
-            let favs = getFavorites();
-            let btn = document.getElementById('btn-favorites');
-            if (favs.length > 0) {
-                btn.style.display = 'inline-block';
-                document.getElementById('fav-count').innerText = favs.length;
-            } else {
-                btn.style.display = 'none';
-            }
-        }
-
         function checkAnswer(btn, selectedOption, questionData) {
             const buttons = document.querySelectorAll('.option-btn'); buttons.forEach(button => button.disabled = true); 
             userAnswers[questionData.id] = selectedOption;
@@ -752,7 +674,7 @@
             if (selectedCode === correctCode) {
                 btn.classList.add('correct'); score++; audioCorrect.play().catch(e=>{});
                 confetti({ particleCount: 50, spread: 50, origin: { y: 0.7 } });
-                if (isMistakeMode && document.getElementById('level-title').innerText.includes("錯題")) removeFromMistakeBank(questionData.id);
+                if (isMistakeMode) removeFromMistakeBank(questionData.id);
             } else {
                 btn.classList.add('wrong'); audioFail.play().catch(e=>{});
                 buttons.forEach(button => { if (button.innerText.substring(0, 3) === correctCode) button.classList.add('correct'); });
@@ -788,10 +710,7 @@
             let newCardAlert = document.getElementById('new-card-alert');
             let gotNewCard = false;
 
-            // 只有一般模式才解鎖關卡
-            let isNormalMode = !isMistakeMode; 
-
-            if (isNormalMode && isPass) {
+            if (!isMistakeMode && isPass) {
                 if (finalScore >= 70) {
                     let oldScore = progress.levelScores[currentLevel];
                     if (oldScore === undefined || oldScore < 70) {
@@ -810,14 +729,8 @@
             
             if(gotNewCard) newCardAlert.style.display = 'block'; else newCardAlert.style.display = 'none';
 
-            if (isNormalMode) saveProgress(currentLevel, finalScore);
-            
-            // 決定歷史紀錄的標題
-            let modeTitle = `第 ${currentLevel} 關`;
-            if (document.getElementById('level-title').innerText.includes("錯題")) modeTitle = "錯題挑戰";
-            if (document.getElementById('level-title').innerText.includes("收藏")) modeTitle = "收藏挑戰";
-
-            saveHistory(userName, finalScore, currentQuizQuestions, userAnswers, modeTitle);
+            if (!isMistakeMode) saveProgress(currentLevel, finalScore);
+            saveHistory(userName, finalScore, currentQuizQuestions, userAnswers, isMistakeMode ? "錯題挑戰" : `第 ${currentLevel} 關`);
             renderReviewList('review-list', currentQuizQuestions, userAnswers);
         }
 
