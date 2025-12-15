@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>第3冊 L5 How Long Will We Stay in Bangkok?</title>
+    <title>英文第3冊 L5 How Long Will We Stay in Bangkok?</title>
     <!-- 修改處：同時引入 CwTeXYen (中文) 和 Nunito (英文) 字型 -->
     <link href="https://fonts.googleapis.com/css2?family=CwTeXYen:wght@400;600&family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
@@ -21,7 +21,6 @@
         }
 
         body { 
-            /* 修改處：將 'Nunito' 放在最前面，優先用於英文顯示，解決間距問題 */
             font-family: 'Nunito', 'CwTeXYen', "Microsoft JhengHei", Arial, sans-serif; 
             max-width: 900px; 
             margin: 0 auto; 
@@ -38,14 +37,120 @@
 
         /* --- 主要容器 --- */
         .quiz-container { 
-            background: rgba(255, 255, 255, 0.95);
+            background: linear-gradient(rgba(255, 255, 255, 0.85), rgba(255, 255, 255, 0.85)), url('images/map_bg.jpg');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            
             padding: 30px; 
+            /* 增加頂部內距，避免內容被音樂播放器遮擋 */
+            padding-top: 90px; 
             border-radius: 25px; 
             box-shadow: 0 10px 25px rgba(0,0,0,0.15); 
             border: 4px solid var(--primary-color);
             position: relative;
             overflow: hidden;
             min-height: 500px;
+        }
+
+        /* --- 音樂播放器樣式 (新增) --- */
+        .music-player-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 70px;
+            background: rgba(255, 255, 255, 0.95);
+            border-bottom: 3px solid var(--music-btn-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            box-sizing: border-box;
+            z-index: 100;
+            backdrop-filter: blur(5px);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .track-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: bold;
+            color: var(--music-btn-color);
+            flex: 1;
+            overflow: hidden;
+        }
+        .track-name {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 150px;
+        }
+
+        .player-controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex: 2;
+            justify-content: center;
+        }
+
+        .control-btn {
+            background: none;
+            border: none;
+            font-size: 1.5em;
+            cursor: pointer;
+            color: #555;
+            transition: 0.2s;
+            padding: 5px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+        }
+        .control-btn:hover { background-color: #f0f0f0; color: var(--music-btn-color); transform: scale(1.1); }
+        .control-btn:active { transform: scale(0.95); }
+        .play-btn { font-size: 2em; color: var(--music-btn-color); }
+
+        .volume-control {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            flex: 1;
+            justify-content: flex-end;
+        }
+        .volume-slider {
+            width: 80px;
+            height: 5px;
+            -webkit-appearance: none;
+            background: #ddd;
+            border-radius: 5px;
+            outline: none;
+        }
+        .volume-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            background: var(--music-btn-color);
+            cursor: pointer;
+        }
+
+        @media (max-width: 600px) {
+            .music-player-bar { 
+                flex-wrap: wrap; 
+                height: auto; 
+                padding: 10px;
+                gap: 5px;
+            }
+            .track-info { width: 100%; margin-bottom: 5px; justify-content: center; }
+            .track-name { max-width: none; }
+            .player-controls { width: 100%; justify-content: center; gap: 20px; order: 2; }
+            .volume-control { display: none; /* 手機版隱藏音量條以節省空間，或可改為 order: 3 */ }
+            .quiz-container { padding-top: 130px; /* 手機版 header 變高，增加 padding */ }
         }
 
         /* --- 動畫特效 --- */
@@ -70,9 +175,8 @@
         .btn-blue { background-color: #3498db; box-shadow: 0 5px 0 #2980b9; }
         .btn-pink { background-color: #E91E63; box-shadow: 0 5px 0 #C2185B; }
         
-        /* 小按鈕與音樂按鈕樣式 */
+        /* 小按鈕樣式 */
         .btn-sm { padding: 8px 16px; font-size: 1em; margin: 0 2px; box-shadow: 0 3px 0 rgba(0,0,0,0.2); }
-        .btn-music { background-color: var(--music-btn-color); box-shadow: 0 3px 0 #8e44ad; }
 
         /* --- 輸入框與快速登入 --- */
         input[type="text"] {
@@ -350,19 +454,37 @@
 <body>
 
     <div class="quiz-container">
+        <!-- 音樂播放器介面 -->
+        <div class="music-player-bar">
+            <div class="track-info">
+                <span style="font-size: 1.2em;">🎵</span>
+                <span id="track-name" class="track-name">選擇音樂...</span>
+            </div>
+            
+            <div class="player-controls">
+                <button class="control-btn" onclick="toggleMode()" id="mode-btn" title="循環模式：全部循環">🔁</button>
+                <button class="control-btn" onclick="prevTrack()" title="上一首">⏮️</button>
+                <button class="control-btn play-btn" onclick="toggleMusic()" id="play-pause-btn" title="播放/暫停">▶️</button>
+                <button class="control-btn" onclick="nextTrack(true)" title="下一首">⏭️</button>
+            </div>
+
+            <div class="volume-control">
+                <span>🔊</span>
+                <input type="range" id="volume-slider" class="volume-slider" min="0" max="1" step="0.1" value="0.3" oninput="setVolume(this.value)" title="音量調整">
+            </div>
+        </div>
+        
         <audio id="bgm-player"></audio>
 
         <div id="welcome-screen" class="fade-in">
-            <h1>國中英語 題庫測驗 (完整版)</h1>
+            <h1>英文第3冊 L5 How Long Will We Stay in Bangkok?</h1>
             <div style="font-size: 5em; margin: 30px;">🇬🇧✨🇺🇸</div>
             <p style="font-size: 1.5em;">請輸入你的名字並選擇一位冒險夥伴！</p>
             <input type="text" id="username" placeholder="你的名字是..." />
             
             <div class="avatar-selection">
-                <img src="images/avatar_boy1.png" class="avatar-option selected" onclick="selectAvatar('avatar_boy1.png', this)">
-                <img src="images/avatar_boy2.png" class="avatar-option" onclick="selectAvatar('avatar_boy2.png', this)">
-                <img src="images/avatar_girl1.png" class="avatar-option" onclick="selectAvatar('avatar_girl1.png', this)">
-                <img src="images/avatar_girl2.png" class="avatar-option" onclick="selectAvatar('avatar_girl2.png', this)">
+                <img src="images/Chris.png" class="avatar-option selected" onclick="selectAvatar('Chris.png', this)">
+                <img src="images/Louis.png" class="avatar-option" onclick="selectAvatar('Louis.png', this)">
             </div>
 
             <div id="quick-login-area" class="quick-login-area"></div>
@@ -387,12 +509,7 @@
                 <button id="btn-favorites" class="btn btn-pink" onclick="startQuiz('favorites')" style="display:none;">❤️ 我的收藏 (<span id="fav-count">0</span>)</button>
                 <button class="btn btn-blue" onclick="showCollection()">🎴 我的圖鑑</button>
                 <button class="btn btn-green" onclick="showHistory()">📜 查看紀錄</button>
-                
-                <div style="display:inline-flex; gap:5px; align-items:center; background:#eee; padding:5px; border-radius:30px;">
-                    <button class="btn btn-sm btn-music" onclick="toggleMusic()" title="播放/暫停">⏯️</button>
-                    <button class="btn btn-sm btn-music" onclick="nextTrack()" title="下一首">⏭️</button>
-                </div>
-
+                <!-- 舊的音樂按鈕已移除 -->
                 <button class="btn btn-gray" onclick="logout()">🚪 登出</button>
             </div>
         </div>
@@ -402,9 +519,7 @@
                 <h3 id="level-title" style="margin:0; font-size: 1.5em;">第 X 關</h3>
                 
                 <div class="header-controls">
-                    <button class="btn btn-sm btn-music" style="margin:0;" onclick="toggleMusic()" title="播放/暫停">⏯️</button>
-                    <button class="btn btn-sm btn-music" style="margin:0;" onclick="nextTrack()" title="下一首">⏭️</button>
-                    
+                     <!-- 舊的音樂按鈕已移除 -->
                     <button class="btn btn-gray btn-sm" style="margin:0;" onclick="exitQuiz()">🏠 回到地圖</button>
                 </div>
             </div>
@@ -493,23 +608,127 @@
         // 設定每關20題，共7關 (因為有129題，前6關20題，第7關9題)
         const LEVEL_CONFIG = [20, 20, 20, 20, 20, 20, 9];
         const ITEMS_PER_ROW = 4;
-        const PLAYLIST = ['sounds/bgm1.mp3', 'sounds/bgm2.mp3', 'sounds/bgm3.mp3'];
+        
+        // 修改：播放清單更新為指定的 7 首音樂
+        const PLAYLIST = [
+            { title: 'Annie on the Dock', src: 'sounds/Annie on the Dock.mp3' },
+            { title: 'Child in the Wind', src: 'sounds/Child in the Wind.mp3' },
+            { title: 'Danny Boy', src: 'sounds/Danny Boy.mp3' },
+            { title: "Jarrell's Cove", src: "sounds/Jarrell's Cove.mp3" },
+            { title: 'Promise on the Bluff', src: 'sounds/Promise on the Bluff.mp3' },
+            { title: 'Talkes of the Harbormaster', src: 'sounds/Talkes of the Harbormaster.mp3' },
+            { title: 'Warn Rain', src: 'sounds/Warn Rain.mp3' }
+        ];
 
         let currentTrackIndex = 0;
         let isPlaying = false;
+        // 新增：循環模式 (0: 全部循環, 1: 單曲循環, 2: 隨機播放)
+        let loopMode = 0; 
+        const LOOP_MODES = [
+            { icon: '🔁', name: '全部循環' },
+            { icon: '🔂', name: '單曲循環' },
+            { icon: '🔀', name: '隨機播放' }
+        ];
         
         let allQuestions = [], currentQuizQuestions = [], currentQuestionIndex = 0, score = 0;
         let userName = "", currentLevel = 1, userAnswers = {}, isMistakeMode = false;
-        let currentAvatar = "avatar_boy1.png"; 
+        let currentAvatar = "Chris.png"; 
         
         let audioCorrect = new Audio('sounds/correct.mp3'); audioCorrect.volume = 0.4;
         let audioFail = new Audio('sounds/fail.mp3'); audioFail.volume = 0.4;
         const bgmPlayer = document.getElementById('bgm-player');
-        bgmPlayer.volume = 0.3; bgmPlayer.onended = nextTrack;
+        bgmPlayer.volume = 0.3; 
+        
+        // 修改：音樂播放結束後的邏輯
+        bgmPlayer.onended = () => {
+            if (loopMode === 1) {
+                // 單曲循環：重播當前
+                bgmPlayer.currentTime = 0;
+                bgmPlayer.play();
+            } else if (loopMode === 2) {
+                // 隨機播放
+                let nextIndex = Math.floor(Math.random() * PLAYLIST.length);
+                // 避免隨機到同一首(如果只有一首除外)
+                if(PLAYLIST.length > 1 && nextIndex === currentTrackIndex) {
+                    nextIndex = (nextIndex + 1) % PLAYLIST.length;
+                }
+                currentTrackIndex = nextIndex;
+                playMusic();
+            } else {
+                // 全部循環 (預設)
+                nextTrack();
+            }
+        };
 
-        function playMusic() { if(PLAYLIST.length===0)return; bgmPlayer.src = PLAYLIST[currentTrackIndex]; bgmPlayer.play().then(()=>isPlaying=true).catch(e=>console.log("Auto-play blocked")); }
-        function toggleMusic() { if (bgmPlayer.paused) { if(!bgmPlayer.src) bgmPlayer.src=PLAYLIST[currentTrackIndex]; bgmPlayer.play(); isPlaying=true; } else { bgmPlayer.pause(); isPlaying=false; } }
-        function nextTrack() { currentTrackIndex = (currentTrackIndex + 1) % PLAYLIST.length; playMusic(); }
+        function playMusic() { 
+            if(PLAYLIST.length === 0) return; 
+            
+            // 確保路徑正確
+            let track = PLAYLIST[currentTrackIndex];
+            // 如果 src 是舊的字串格式，相容處理
+            let src = track.src || track;
+            let title = track.title || `Track ${currentTrackIndex + 1}`;
+            
+            // 只有當曲目改變時才重新載入
+            if (!bgmPlayer.src.includes(src)) {
+                bgmPlayer.src = src;
+            }
+            
+            bgmPlayer.play().then(() => {
+                isPlaying = true;
+                updatePlayerUI();
+            }).catch(e => console.log("Auto-play blocked", e));
+            
+            // 更新歌名顯示
+            document.getElementById('track-name').innerText = title;
+        }
+
+        function toggleMusic() { 
+            if (bgmPlayer.paused) { 
+                if(!bgmPlayer.src) playMusic(); // 如果還沒設 src
+                else bgmPlayer.play(); 
+                isPlaying = true; 
+            } else { 
+                bgmPlayer.pause(); 
+                isPlaying = false; 
+            } 
+            updatePlayerUI();
+        }
+
+        function nextTrack(isUserAction = false) { 
+            if (isUserAction && loopMode === 2) {
+                // 如果是使用者按下一首且在隨機模式，隨機跳
+                let nextIndex = Math.floor(Math.random() * PLAYLIST.length);
+                currentTrackIndex = nextIndex;
+            } else {
+                // 一般下一首
+                currentTrackIndex = (currentTrackIndex + 1) % PLAYLIST.length; 
+            }
+            playMusic(); 
+        }
+
+        function prevTrack() {
+            // 上一首
+            currentTrackIndex = (currentTrackIndex - 1 + PLAYLIST.length) % PLAYLIST.length;
+            playMusic();
+        }
+        
+        function toggleMode() {
+            loopMode = (loopMode + 1) % LOOP_MODES.length;
+            let btn = document.getElementById('mode-btn');
+            btn.innerText = LOOP_MODES[loopMode].icon;
+            btn.title = `循環模式：${LOOP_MODES[loopMode].name}`;
+        }
+        
+        function setVolume(val) {
+            bgmPlayer.volume = val;
+        }
+
+        function updatePlayerUI() {
+            let btn = document.getElementById('play-pause-btn');
+            btn.innerText = isPlaying ? '⏸️' : '▶️';
+            btn.title = isPlaying ? '暫停' : '播放';
+        }
 
         fetch('questions.json').then(res => res.json()).then(data => { allQuestions = data; renderQuickLogin(); }).catch(e => console.error(e));
 
@@ -533,7 +752,8 @@
                 container.innerHTML = '<div style="width:100%; text-align:center; color:#666; font-size:0.9em; margin-bottom:5px;">快速登入</div>';
                 users.forEach(userObj => {
                     let name = typeof userObj === 'string' ? userObj : userObj.name;
-                    let avatar = typeof userObj === 'string' ? 'avatar_boy1.png' : userObj.avatar;
+                    // 修改預設頭像為 Chris.png
+                    let avatar = typeof userObj === 'string' ? 'Chris.png' : userObj.avatar;
                     let div = document.createElement('div');
                     div.innerHTML = `<span class="user-tag" onclick="quickLogin('${name}', '${avatar}')"><img src="images/${avatar}" style="width:25px; height:25px; border-radius:50%; margin-right:5px;">${name}<span class="delete-user" onclick="event.stopPropagation(); deleteUser('${name}')">🗑️</span></span>`;
                     container.appendChild(div);
@@ -578,6 +798,9 @@
             // 修改：存回 english3_L5_savedUsers
             localStorage.setItem('english3_L5_savedUsers', JSON.stringify(users));
 
+            // 初始化播放器介面
+            let startTrack = PLAYLIST[currentTrackIndex];
+            document.getElementById('track-name').innerText = startTrack.title || `Track 1`;
             if (!isPlaying) playMusic();
             goToLevelScreen();
         }
@@ -589,6 +812,7 @@
         function saveProgress(level, score) {
             let progress = getProgress();
             if (!progress.levelScores[level] || score > progress.levelScores[level]) progress.levelScores[level] = score;
+            // 維持 70 分過關
             if (score >= 70 && level === progress.maxLevel && level < LEVEL_CONFIG.length) progress.maxLevel++;
             localStorage.setItem(getUserKey('quizProgress'), JSON.stringify(progress));
         }
@@ -598,6 +822,9 @@
             document.getElementById('user-avatar-display').src = "images/" + currentAvatar;
             document.querySelectorAll('.quiz-container > div').forEach(el => el.style.display = 'none');
             document.getElementById('level-screen').style.display = 'block';
+            // 顯示播放器
+            document.querySelector('.music-player-bar').style.display = 'flex';
+            
             renderLevelMap(); updateMistakeButton(); updateFavoritesButton();
         }
 
@@ -780,6 +1007,7 @@
             
             if(finalScore === 100) comment = "🏆 完美通關！太強了！"; 
             else if(finalScore >= 90) comment = "🌟 優秀！繼續保持！"; 
+            // 維持 70 分顯示
             else if(finalScore >= 70) comment = "🎉 恭喜過關！下一關解鎖！"; 
             else comment = "💪 加油！70分才能解鎖下一關喔！";
             
@@ -792,6 +1020,7 @@
             let isNormalMode = !isMistakeMode; 
 
             if (isNormalMode && isPass) {
+                // 維持 70 分判斷
                 if (finalScore >= 70) {
                     let oldScore = progress.levelScores[currentLevel];
                     if (oldScore === undefined || oldScore < 70) {
@@ -832,6 +1061,7 @@
             const progress = getProgress();
             for (let i = 1; i <= LEVEL_CONFIG.length; i++) {
                 let bestScore = progress.levelScores[i];
+                // 維持 70 分解鎖卡片
                 let isUnlocked = (bestScore !== undefined && bestScore >= 70);
                 let numStr = i < 10 ? `0${i}` : `${i}`;
                 let imgSrc = `images/card_${numStr}.jpg`;
