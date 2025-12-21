@@ -405,25 +405,6 @@
         .fav-btn:hover { transform: scale(1.2); }
         .fav-btn:active { transform: scale(0.9); }
 
-        /* 新增：刪除按鈕樣式 */
-        .trash-btn {
-            position: absolute;
-            top: 10px;
-            right: 70px; /* 放在愛心左邊 */
-            background: none;
-            border: none;
-            font-size: 2.2em;
-            cursor: pointer;
-            transition: 0.3s;
-            padding: 0;
-            line-height: 1;
-            color: #E74C3C;
-            z-index: 10;
-        }
-        .trash-btn:hover { transform: scale(1.2); color: #c0392b; }
-        .trash-btn:active { transform: scale(0.9); }
-
-
         .option-btn { 
             width: 100%; padding: 15px; margin: 10px 0; text-align: left; 
             background: white; border: 3px solid #B3E5FC; border-radius: 20px; 
@@ -553,9 +534,6 @@
             <div id="question-container" class="fade-in">
                 <div class="question-box">
                     <button id="fav-btn" class="fav-btn" onclick="toggleFavorite()" title="加入收藏">♡</button>
-                    <!-- 新增：垃圾桶按鈕 (預設隱藏) -->
-                    <button id="trash-btn" class="trash-btn" onclick="manualDeleteQuestion()" title="從清單移除" style="display:none;">🗑️</button>
-                    
                     <div id="question-text" class="question-text">載入中...</div>
                     <img id="question-image" class="question-img" style="display: none;" />
                 </div>
@@ -863,7 +841,6 @@
                     let levelNum = startLevelNum + itemIndex;
                     let wrapper = document.createElement('div'); wrapper.className = 'level-wrapper';
                     let btn = document.createElement('button'); btn.className = 'level-btn';
-                    
                     if (levelNum <= progress.maxLevel) {
                         let bestScore = progress.levelScores[levelNum];
                         let icon = bestScore >= 70 ? '🚩' : '🏳️';
@@ -877,25 +854,12 @@
                     } else {
                         btn.disabled = true; btn.innerHTML = `<div class="level-title">🔒 第 ${levelNum} 關</div><div class="level-score" style="color:gray">鎖定</div>`;
                     }
-                    
-                    // 修改：箭頭創建邏輯
-                    let arrow = null;
+                    wrapper.appendChild(btn);
                     if (itemIndex < rowItems.length - 1) {
-                        arrow = document.createElement('div'); arrow.className = 'arrow-icon';
+                        let arrow = document.createElement('div'); arrow.className = 'arrow-icon';
                         if (isReverse) { arrow.innerHTML = '➜'; arrow.classList.add('arrow-left'); } else { arrow.innerText = '➜'; arrow.classList.add('arrow-right'); }
+                        wrapper.appendChild(arrow);
                     }
-
-                    // 修改：根據是否反向排列，決定箭頭和按鈕的順序
-                    if (isReverse) {
-                        // 反向排列時，箭頭要放在按鈕前面 (視覺上在左邊)
-                        if (arrow) wrapper.appendChild(arrow);
-                        wrapper.appendChild(btn);
-                    } else {
-                        // 正向排列時，箭頭要放在按鈕後面 (視覺上在右邊)
-                        wrapper.appendChild(btn);
-                        if (arrow) wrapper.appendChild(arrow);
-                    }
-                    
                     rowDiv.appendChild(wrapper);
                 });
                 container.appendChild(rowDiv);
@@ -951,16 +915,6 @@
             
             // 更新收藏按鈕狀態
             updateFavoriteIcon();
-
-            // 新增：處理垃圾桶按鈕的顯示
-            let trashBtn = document.getElementById('trash-btn');
-            let levelTitle = document.getElementById('level-title').innerText;
-            // 只有在錯題本或收藏模式下才顯示垃圾桶
-            if (levelTitle.includes("錯題") || levelTitle.includes("收藏")) {
-                trashBtn.style.display = 'block';
-            } else {
-                trashBtn.style.display = 'none';
-            }
             
             const imgElement = document.getElementById('question-image');
             if (currentQuestion.image) { imgElement.src = currentQuestion.image; imgElement.style.display = 'block'; } else { imgElement.style.display = 'none'; }
@@ -1018,52 +972,6 @@
             }
         }
 
-        // 新增：手動刪除題目功能
-        function manualDeleteQuestion() {
-            const currentQ = currentQuizQuestions[currentQuestionIndex];
-            let mode = "";
-            let levelTitle = document.getElementById('level-title').innerText;
-            if (levelTitle.includes("錯題")) mode = "mistake";
-            else if (levelTitle.includes("收藏")) mode = "favorite";
-            else return; // 非這兩種模式不應觸發
-
-            let modeName = mode === "mistake" ? "錯題本" : "我的收藏";
-
-            // 雙重確認
-            if (!confirm(`確定要將此題從「${modeName}」中移除嗎？`)) return;
-            if (!confirm(`⚠️ 再次確認：移除後將不再出現於${modeName}中！\n您確定要刪除嗎？`)) return;
-
-            // 執行刪除
-            if (mode === "mistake") {
-                removeFromMistakeBank(currentQ.id);
-            } else {
-                // 從收藏中移除 (不使用 toggle 因為這裡一定是移除)
-                let favs = getFavorites();
-                let index = favs.indexOf(currentQ.id);
-                if (index > -1) {
-                    favs.splice(index, 1);
-                    localStorage.setItem(getUserKey('favorites'), JSON.stringify(favs));
-                }
-            }
-
-            // 從當前作答陣列中移除
-            currentQuizQuestions.splice(currentQuestionIndex, 1);
-            document.getElementById('total-q-num').innerText = currentQuizQuestions.length;
-
-            // 判斷是否清空
-            if (currentQuizQuestions.length === 0) {
-                alert(`${modeName}已清空！即將返回地圖。`);
-                goToLevelScreen();
-            } else {
-                // 修正索引 (如果刪除的是最後一題，索引歸零或退一格)
-                // 簡單作法：如果索引超過長度，歸零；否則維持原索引(因為後面的題目遞補上來了)
-                if (currentQuestionIndex >= currentQuizQuestions.length) {
-                    currentQuestionIndex = 0;
-                }
-                loadQuestion();
-            }
-        }
-
         function checkAnswer(btn, selectedOption, questionData) {
             const buttons = document.querySelectorAll('.option-btn'); buttons.forEach(button => button.disabled = true); 
             userAnswers[questionData.id] = selectedOption;
@@ -1071,8 +979,7 @@
             if (selectedCode === correctCode) {
                 btn.classList.add('correct'); score++; audioCorrect.play().catch(e=>{});
                 confetti({ particleCount: 50, spread: 50, origin: { y: 0.7 } });
-                // 修改：答對後不再自動刪除
-                // if (isMistakeMode && document.getElementById('level-title').innerText.includes("錯題")) removeFromMistakeBank(questionData.id);
+                if (isMistakeMode && document.getElementById('level-title').innerText.includes("錯題")) removeFromMistakeBank(questionData.id);
             } else {
                 btn.classList.add('wrong'); audioFail.play().catch(e=>{});
                 buttons.forEach(button => { if (button.innerText.substring(0, 3) === correctCode) button.classList.add('correct'); });
