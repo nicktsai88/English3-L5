@@ -848,8 +848,7 @@
             list.innerHTML = "";
             
             // Use stored order
-            // FIX: Ensure ID comparison handles string/number mismatch
-            const questions = allQuestions.filter(q => quizState.qIds.some(id => id == q.id));
+            const questions = allQuestions.filter(q => quizState.qIds.includes(q.id));
 
             questions.forEach((q, idx) => {
                 const card = document.createElement('div');
@@ -915,23 +914,17 @@
         }
 
         function handleWaterfallAnswer(qId, option) {
-            // FIX: 使用寬鬆比對 (==) 以處理字串/數字 ID 不一致的問題
-            const qData = allQuestions.find(q => q.id == qId);
-            if(!qData) return;
-
-            // 取得原始型別的 ID (確保後續邏輯一致)
-            const realId = qData.id;
-
-            if(quizState.locked[realId]) return;
+            if(quizState.locked[qId]) return;
             
-            quizState.answers[realId] = option;
-            quizState.locked[realId] = true;
+            const qData = allQuestions.find(q => q.id === qId);
+            quizState.answers[qId] = option;
+            quizState.locked[qId] = true;
             
             const correct = qData.answer.substring(0,3);
             const selected = option.substring(0,3);
             
-            // 取得卡片元素 (用原始ID找)
-            const card = document.getElementById(`card-${realId}`);
+            // 取得卡片元素
+            const card = document.getElementById(`card-${qId}`);
 
             if(selected === correct) {
                 quizState.score++;
@@ -940,7 +933,7 @@
                 if(card) card.classList.add('card-correct'); // 立即變綠
             } else {
                 audioFail.play().catch(()=>{});
-                addToMistake(realId); // 傳入原始 ID
+                addToMistake(qId);
                 if(card) card.classList.add('card-wrong'); // 立即變紅
             }
             
@@ -987,18 +980,14 @@
         }
 
         function toggleWaterfallFav(btn, id) {
-            // FIX: 找到原始 ID
-            const qData = allQuestions.find(q => q.id == id);
-            const realId = qData ? qData.id : id;
-
             let list = JSON.parse(localStorage.getItem(getUserKey('favoriteBank'))) || [];
-            if(list.includes(realId)) {
-                list = list.filter(x => x !== realId);
+            if(list.includes(id)) {
+                list = list.filter(x => x !== id);
                 btn.classList.remove('active');
                 // 修改點：取消收藏時，變回空心愛心 + 強制文字模式
                 btn.innerHTML = '♡&#xFE0E;';
             } else {
-                list.push(realId);
+                list.push(id);
                 btn.classList.add('active');
                 // 修改點：收藏時，變為實心愛心 + 強制文字模式
                 btn.innerHTML = '♥&#xFE0E;';
@@ -1028,24 +1017,21 @@
         function deleteCardItem(id) {
             if(!confirm("Remove this item?")) return;
             
-            // FIX: Handle type mismatch
-            const filterFunc = (x) => x != id; // loose inequality
-
             // Remove from list (Mistake or Favorite)
             if(quizState.mode === 'mistake') {
                 let list = JSON.parse(localStorage.getItem(getUserKey('mistakeBank'))) || [];
-                list = list.filter(filterFunc);
+                list = list.filter(x => x !== id);
                 localStorage.setItem(getUserKey('mistakeBank'), JSON.stringify(list));
                 quizState.qIds = list;
             } else if (quizState.mode === 'favorite') {
                 let list = JSON.parse(localStorage.getItem(getUserKey('favoriteBank'))) || [];
-                list = list.filter(filterFunc);
+                list = list.filter(x => x !== id);
                 localStorage.setItem(getUserKey('favoriteBank'), JSON.stringify(list));
                 quizState.qIds = list;
             }
 
             // Remove visual element
-            const card = document.getElementById(`card-${id}`); // DOM ID is string-based, safe
+            const card = document.getElementById(`card-${id}`);
             if(card) card.remove();
             
             // FIX: Ensure this deletion is saved to current progress so it doesn't reappear on resume
